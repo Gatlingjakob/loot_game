@@ -29,3 +29,5 @@ up next:
 item seed system 
 only certain stats and names should go on certain item types at certain level tiers
 weapon damage type and flat added damage type on items
+class requirement 
+special abilities
