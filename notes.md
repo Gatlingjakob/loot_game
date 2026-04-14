@@ -24,3 +24,7 @@ added elemental damage
 movement speed
 exp % increase
 special abilites for uniques - could be something like a special buff that stacks on the player whenever the weapon hits its target
+
+up next:
+item seed system 
+only certain stats and names should go on certain item types at certain level tiers
