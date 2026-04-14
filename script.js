@@ -33,10 +33,23 @@ const WeaponType = Object.freeze({
   STAFF: "Staff"
 });
 
-// ---------- NAME PARTS (NEW) ----------
+// ---------- RARITY NAME SYSTEM ----------
 
-const prefixes = ["Rusty", "Ancient", "Blessed", "Cursed", "Savage", "Forgotten"];
-const suffixes = ["of Power", "of the Bear", "of Shadows", "of Fury", "of Titans"];
+const PREFIXES_BY_RARITY = {
+  Common: ["Worn", "Rusty", "Old", "Cracked", "Simple", "Tarnished", "Plain"],
+  Uncommon: ["Polished", "Reinforced", "Balanced", "Sharp", "Honed", "Reliable"],
+  Rare: ["Masterwork", "Vengeful", "Swift", "Deadly", "Enchanted", "Battle-Hardened"],
+  Epic: ["Mythic", "Runebound", "Voidtouched", "Stormforged", "Dragon-Slaying", "Celestial"],
+  Legendary: ["Godslayer", "Worldbreaker", "Voidforged", "Starforged", "Eternal", "Reality-Sundered"]
+};
+
+const SUFFIXES_BY_RARITY = {
+  Common: ["of the Farm", "of the Road", "of Iron", "of Duty", "of Survival"],
+  Uncommon: ["of the Wolf", "of the Soldier", "of Precision", "of the Hunt"],
+  Rare: ["of the Veteran", "of the Duelist", "of the Storm", "of Embers"],
+  Epic: ["of the Phoenix", "of Arcane Wrath", "of the Void", "of Forgotten Kings"],
+  Legendary: ["of Gods", "of Worlds", "of Fate Itself", "of Creation's End"]
+};
 
 // ---------- CLASSES ----------
 
@@ -105,16 +118,14 @@ class LootGenerator {
     return slots[Math.floor(Math.random() * slots.length)];
   }
 
-  getPrefix() {
-    return Math.random() < 0.6
-      ? prefixes[Math.floor(Math.random() * prefixes.length)]
-      : "";
+  getPrefix(rarity) {
+    const pool = PREFIXES_BY_RARITY[rarity] || [];
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : "";
   }
 
-  getSuffix() {
-    return Math.random() < 0.5
-      ? suffixes[Math.floor(Math.random() * suffixes.length)]
-      : "";
+  getSuffix(rarity) {
+    const pool = SUFFIXES_BY_RARITY[rarity] || [];
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : "";
   }
 
   rollStat(rarity) {
@@ -152,14 +163,13 @@ class LootGenerator {
 
   generateWeapon() {
     const rarity = this.getRarity();
-
-    const weaponType = this.getWeaponType(); // ✅ FIX: stored once
+    const weaponType = this.getWeaponType();
 
     const rawA = rand(5, 10) * this.playerLevel;
     const rawB = rand(10, 20) * this.playerLevel;
 
     const weapon = new Weapon({
-      name: `${this.getPrefix()} ${weaponType} ${this.getSuffix()}`.trim(),
+      name: `${this.getPrefix(rarity)} ${weaponType} ${this.getSuffix(rarity)}`.trim(),
       levelRequirement: this.playerLevel,
       rarity,
       weaponType,
@@ -182,11 +192,10 @@ class LootGenerator {
 
   generateArmor() {
     const rarity = this.getRarity();
-
-    const slot = this.getArmorSlot(); // ✅ FIX: stored once
+    const slot = this.getArmorSlot();
 
     const armor = new Armor({
-      name: `${this.getPrefix()} ${slot} ${this.getSuffix()}`.trim(),
+      name: `${this.getPrefix(rarity)} ${slot} ${this.getSuffix(rarity)}`.trim(),
       levelRequirement: this.playerLevel,
       rarity,
       slot
@@ -225,14 +234,14 @@ function displayItem(item) {
 
   if (item instanceof Weapon) {
     extra = `
-      <div>Weapon Type: ${item.weaponType}</div>
-      <div>Damage: ${item.weaponDamageMin} - ${item.weaponDamageMax}</div>
+      <div><b>Weapon Type:</b> ${item.weaponType}</div>
+      <div><b>Damage:</b> ${item.weaponDamageMin} - ${item.weaponDamageMax}</div>
     `;
   }
 
   if (item instanceof Armor) {
     extra = `
-      <div>Armor Slot: ${item.slot}</div>
+      <div><b>Armor Slot:</b> ${item.slot}</div>
     `;
   }
 
