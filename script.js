@@ -1,129 +1,260 @@
-// ---------- CONFIG ----------
-
-const rarities = [
-  { name: "Common", weight: 40, multiplier: 1 },
-  { name: "Uncommon", weight: 25, multiplier: 1.2 },
-  { name: "Rare", weight: 18, multiplier: 1.5 },
-  { name: "Epic", weight: 12, multiplier: 2 },
-  { name: "Legendary", weight: 5, multiplier: 3 }
-];
-
-const gearTypes = [
-  {
-    name: "Sword",
-    stats: {
-      damage: [5, 12],
-      crit: [1, 5]
-    }
-  },
-  {
-    name: "Helmet",
-    stats: {
-      armor: [3, 8],
-      health: [10, 25]
-    }
-  },
-  {
-    name: "Chestplate",
-    stats: {
-      armor: [8, 20],
-      health: [20, 60]
-    }
-  },
-  {
-    name: "Boots",
-    stats: {
-      speed: [1, 6],
-      dodge: [1, 5]
-    }
-  }
-];
-
-const prefixes = [
-  "Ancient",
-  "Cursed",
-  "Blessed",
-  "Savage",
-  "Mystic",
-  "Brutal",
-  "Frozen",
-  "Burning"
-];
-
-const suffixes = [
-  "of Power",
-  "of the Bear",
-  "of Agility",
-  "of Doom",
-  "of the Phoenix",
-  "of Shadows"
-];
-
-// ---------- UTIL ----------
-
-function weightedRandom(list) {
-  const total = list.reduce((sum, item) => sum + item.weight, 0);
-  let roll = Math.random() * total;
-
-  for (const item of list) {
-    if (roll < item.weight) return item;
-    roll -= item.weight;
-  }
-}
-
 function rand(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function pick(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
+// ---------- ENUMS ----------
+
+const Rarity = Object.freeze({
+  COMMON: "Common",
+  UNCOMMON: "Uncommon",
+  RARE: "Rare",
+  EPIC: "Epic",
+  LEGENDARY: "Legendary"
+});
+
+const StatType = Object.freeze({
+  STRENGTH: "Strength",
+  AGILITY: "Agility",
+  INTELLIGENCE: "Intelligence",
+  CRIT_CHANCE: "Crit Chance",
+  ATTACK_SPEED: "Attack Speed",
+  MOVEMENT_SPEED: "Movement Speed",
+  DAMAGE_FLAT: "Flat Damage",
+  ELEMENTAL_DAMAGE: "Elemental Damage"
+});
+
+const WeaponType = Object.freeze({
+  ONE_HAND_SWORD: "1H Sword",
+  TWO_HAND_SWORD: "2H Sword",
+  AXE: "Axe",
+  SPEAR: "Spear",
+  POLEARM: "Polearm",
+  DAGGER: "Dagger",
+  STAFF: "Staff"
+});
+
+// ---------- NAME PARTS (NEW) ----------
+
+const prefixes = ["Rusty", "Ancient", "Blessed", "Cursed", "Savage", "Forgotten"];
+const suffixes = ["of Power", "of the Bear", "of Shadows", "of Fury", "of Titans"];
+
+// ---------- CLASSES ----------
+
+class Stat {
+  constructor(type, value) {
+    this.type = type;
+    this.value = value;
+  }
 }
 
-// ---------- MAIN ROLL ----------
-
-function rollLoot() {
-  const rarity = weightedRandom(rarities);
-  const gear = pick(gearTypes);
-
-  const prefix = Math.random() < 0.6 ? pick(prefixes) : "";
-  const suffix = Math.random() < 0.5 ? pick(suffixes) : "";
-
-  const stats = {};
-
-  for (const stat in gear.stats) {
-    const [min, max] = gear.stats[stat];
-    const value = Math.floor(rand(min, max) * rarity.multiplier);
-    stats[stat] = value;
+class Item {
+  constructor({ name, levelRequirement, rarity, stats = [], flavorText = "" }) {
+    this.name = name;
+    this.levelRequirement = levelRequirement;
+    this.rarity = rarity;
+    this.stats = stats;
+    this.flavorText = flavorText;
   }
 
-  const name = `${prefix ? prefix + " " : ""}${gear.name}${suffix ? " " + suffix : ""}`;
+  addStat(stat) {
+    this.stats.push(stat);
+  }
+}
 
-  displayLoot({
-    name,
-    rarity: rarity.name,
-    stats
-  });
+class Weapon extends Item {
+  constructor(config) {
+    super(config);
+
+    this.weaponType = config.weaponType;
+    this.weaponDamageMin = config.weaponDamageMin;
+    this.weaponDamageMax = config.weaponDamageMax;
+  }
+}
+
+class Armor extends Item {
+  constructor(config) {
+    super(config);
+
+    this.slot = config.slot;
+  }
+}
+
+// ---------- LOOT GENERATOR ----------
+
+class LootGenerator {
+  constructor(playerLevel) {
+    this.playerLevel = playerLevel;
+  }
+
+  getRarity() {
+    const r = Math.random();
+    if (r < 0.5) return Rarity.COMMON;
+    if (r < 0.75) return Rarity.UNCOMMON;
+    if (r < 0.9) return Rarity.RARE;
+    if (r < 0.97) return Rarity.EPIC;
+    return Rarity.LEGENDARY;
+  }
+
+  getWeaponType() {
+    const vals = Object.values(WeaponType);
+    return vals[Math.floor(Math.random() * vals.length)];
+  }
+
+  getArmorSlot() {
+    const slots = ["Helmet", "Chest", "Gloves", "Boots"];
+    return slots[Math.floor(Math.random() * slots.length)];
+  }
+
+  getPrefix() {
+    return Math.random() < 0.6
+      ? prefixes[Math.floor(Math.random() * prefixes.length)]
+      : "";
+  }
+
+  getSuffix() {
+    return Math.random() < 0.5
+      ? suffixes[Math.floor(Math.random() * suffixes.length)]
+      : "";
+  }
+
+  rollStat(rarity) {
+    const base = rand(1, 10);
+
+    const mult = {
+      Common: 1,
+      Uncommon: 1.2,
+      Rare: 1.5,
+      Epic: 2,
+      Legendary: 3
+    }[rarity];
+
+    return Math.floor(base * mult);
+  }
+
+  addStats(item, rarity, statCount) {
+    const pool = Object.values(StatType);
+    const used = new Set();
+
+    let attempts = 0;
+
+    while (item.stats.length < statCount && attempts < 50) {
+      const type = pool[Math.floor(Math.random() * pool.length)];
+
+      if (used.has(type)) {
+        attempts++;
+        continue;
+      }
+
+      used.add(type);
+      item.addStat(new Stat(type, this.rollStat(rarity)));
+    }
+  }
+
+  generateWeapon() {
+    const rarity = this.getRarity();
+
+    const weaponType = this.getWeaponType(); // ✅ FIX: stored once
+
+    const rawA = rand(5, 10) * this.playerLevel;
+    const rawB = rand(10, 20) * this.playerLevel;
+
+    const weapon = new Weapon({
+      name: `${this.getPrefix()} ${weaponType} ${this.getSuffix()}`.trim(),
+      levelRequirement: this.playerLevel,
+      rarity,
+      weaponType,
+      weaponDamageMin: Math.min(rawA, rawB),
+      weaponDamageMax: Math.max(rawA, rawB)
+    });
+
+    const statCount = {
+      Common: 1,
+      Uncommon: 2,
+      Rare: 3,
+      Epic: 5,
+      Legendary: 6
+    }[rarity];
+
+    this.addStats(weapon, rarity, statCount);
+
+    return weapon;
+  }
+
+  generateArmor() {
+    const rarity = this.getRarity();
+
+    const slot = this.getArmorSlot(); // ✅ FIX: stored once
+
+    const armor = new Armor({
+      name: `${this.getPrefix()} ${slot} ${this.getSuffix()}`.trim(),
+      levelRequirement: this.playerLevel,
+      rarity,
+      slot
+    });
+
+    const statCount = {
+      Common: 1,
+      Uncommon: 2,
+      Rare: 3,
+      Epic: 4,
+      Legendary: 5
+    }[rarity];
+
+    this.addStats(armor, rarity, statCount);
+
+    return armor;
+  }
+
+  generateItem() {
+    return Math.random() < 0.7
+      ? this.generateWeapon()
+      : this.generateArmor();
+  }
 }
 
 // ---------- DISPLAY ----------
 
-function displayLoot(item) {
+function displayItem(item) {
   const lootDiv = document.getElementById("loot");
 
-  const statsHTML = Object.entries(item.stats)
-    .map(([key, value]) => `<div class="stat"><span>${key}</span><span>${value}</span></div>`)
+  const statsHTML = item.stats
+    .map(s => `<div class="stat"><span>${s.type}</span><span>${s.value}</span></div>`)
     .join("");
 
+  let extra = "";
+
+  if (item instanceof Weapon) {
+    extra = `
+      <div>Weapon Type: ${item.weaponType}</div>
+      <div>Damage: ${item.weaponDamageMin} - ${item.weaponDamageMax}</div>
+    `;
+  }
+
+  if (item instanceof Armor) {
+    extra = `
+      <div>Armor Slot: ${item.slot}</div>
+    `;
+  }
+
   lootDiv.innerHTML = `
-    <h3 class="rarity-${item.rarity.toLowerCase()}">
-      ${item.name}
-    </h3>
-    <div>${item.rarity}</div>
+    <h3 class="rarity-${item.rarity.toLowerCase()}">${item.name}</h3>
+    <div>Rarity: ${item.rarity}</div>
+    <div>Level Req: ${item.levelRequirement}</div>
+    ${extra}
     <hr>
     ${statsHTML}
+    <p><i>${item.flavorText || ""}</i></p>
   `;
 }
 
-// ---------- EVENT ----------
+// ---------- INIT ----------
+
+function rollLoot() {
+  const level = rand(1, 100);
+  const generator = new LootGenerator(level);
+
+  const item = generator.generateItem();
+  displayItem(item);
+}
 
 document.getElementById("rollBtn").addEventListener("click", rollLoot);
