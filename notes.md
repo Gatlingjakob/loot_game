@@ -28,3 +28,4 @@ special abilites for uniques - could be something like a special buff that stack
 up next:
 item seed system 
 only certain stats and names should go on certain item types at certain level tiers
+weapon damage type and flat added damage type on items
